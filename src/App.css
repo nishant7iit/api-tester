@@ -1,0 +1,10 @@
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+/* Removed unused .logo, .card, .read-the-docs styles for minimalism */
