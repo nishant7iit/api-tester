@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Folder, History, Plus, ChevronDown, ChevronRight } from "lucide-react";
@@ -40,17 +40,20 @@ const mockCollections: Collection[] = [
   }
 ];
 
-const recentRequests: Request[] = [
-  { id: "r1", name: "Get posts", method: "GET", url: "https://jsonplaceholder.typicode.com/posts", timestamp: new Date() },
-  { id: "r2", name: "Get users", method: "GET", url: "https://jsonplaceholder.typicode.com/users", timestamp: new Date(Date.now() - 3600000) },
-];
-
 interface SidebarProps {
   onSelectRequest: (request: Request) => void;
 }
 
 export function Sidebar({ onSelectRequest }: SidebarProps) {
   const [collections, setCollections] = useState(mockCollections);
+  const [history, setHistory] = useState<Request[]>([]);
+
+  useEffect(() => {
+    const storedHistory = localStorage.getItem("requestHistory");
+    if (storedHistory) {
+      setHistory(JSON.parse(storedHistory));
+    }
+  }, []);
 
   const toggleCollection = (id: string) => {
     setCollections(prev =>
@@ -107,7 +110,7 @@ export function Sidebar({ onSelectRequest }: SidebarProps) {
         </div>
         <div className="p-4">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">History</h3>
-          {recentRequests.map(req => (
+          {history.map(req => (
             <div
               key={req.id}
               className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
@@ -120,7 +123,7 @@ export function Sidebar({ onSelectRequest }: SidebarProps) {
                 req.method === 'PUT' ? 'text-yellow-500' :
                 'text-red-500'
               }`}>{req.method}</span>
-              <span className="truncate">{req.name}</span>
+              <span className="truncate">{req.url}</span>
             </div>
           ))}
         </div>

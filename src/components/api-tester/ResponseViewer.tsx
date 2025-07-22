@@ -94,7 +94,19 @@ export function ResponseViewer({
           <TabsTrigger value="body">Body</TabsTrigger>
           <TabsTrigger value="headers">Headers</TabsTrigger>
         </TabsList>
-        <TabsContent value="body">{renderFormattedResponse()}</TabsContent>
+        <TabsContent value="body">
+          <div className="relative">
+            {renderFormattedResponse()}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => copyToClipboard(response)}
+            >
+              Copy
+            </Button>
+          </div>
+        </TabsContent>
         <TabsContent value="headers">{renderHeaders()}</TabsContent>
       </Tabs>
     </div>

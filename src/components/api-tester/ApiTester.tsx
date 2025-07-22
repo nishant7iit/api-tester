@@ -10,8 +10,10 @@ import { Sidebar } from "./Sidebar";
 import { RequestBuilder } from "./RequestBuilder";
 import { ResponseViewer } from "./ResponseViewer";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, FileText } from "lucide-react";
+import { Plus, X, FileText, Gift } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { WhatsNew } from "./WhatsNew";
+import { Button } from "@/components/ui/button";
 
 interface Request {
   id: string;
@@ -40,7 +42,16 @@ export function ApiTester() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return localStorage.getItem("apiTesterOnboarding") !== "dismissed";
   });
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const hasSeenWhatsNew = localStorage.getItem("whatsNewLastSeen");
+    if (!hasSeenWhatsNew) {
+      setShowWhatsNew(true);
+      localStorage.setItem("whatsNewLastSeen", new Date().toISOString());
+    }
+  }, []);
 
   // Only define handleAddTab once, and memoize for useEffect
   const handleAddTab = () => {
@@ -144,6 +155,10 @@ export function ApiTester() {
 
       handleUpdateResponse(tabId, responseData);
 
+      const newRequest = { ...requestData, id: Date.now().toString(), timestamp: new Date() };
+      const history = JSON.parse(localStorage.getItem("requestHistory") || "[]");
+      localStorage.setItem("requestHistory", JSON.stringify([newRequest, ...history]));
+
       toast({
         title: "Request completed",
         description: `${response.status} ${response.statusText} • ${timing}ms`,
@@ -203,58 +218,66 @@ export function ApiTester() {
       <Sidebar onSelectRequest={handleSelectRequest} />
       <div className="flex flex-col flex-1">
         <Header />
-        <div className="flex-1 p-4 overflow-y-auto">
+        <Header>
+          <Button variant="ghost" size="icon" onClick={() => setShowWhatsNew(true)}>
+            <Gift size={20} />
+          </Button>
+        </Header>
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <div className="flex items-center gap-2 mb-4">
             {tabs.map(tab => (
               <button
                 key={tab.id}
-                className={`px-3 py-2 text-sm font-medium rounded-t-lg focus:outline-none ${
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg focus:outline-none transition-colors ${
                   activeTab === tab.id
-                    ? "bg-white dark:bg-gray-800"
+                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
                 }`}
                 onClick={() => setActiveTab(tab.id)}
               >
-                {tab.name}
+                <span>{tab.name}</span>
                 <button
-                  className="ml-2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                  className="p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
                   onClick={e => {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
                 >
-                  &times;
+                  <X size={14} />
                 </button>
               </button>
             ))}
             <button
-              className="p-2 text-white bg-blue-500 rounded-full hover:bg-blue-600"
+              className="p-2 text-white bg-blue-500 rounded-full hover:bg-blue-600 transition-transform transform hover:scale-110"
               onClick={handleAddTab}
             >
               <Plus size={16} />
             </button>
           </div>
-          <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
-            <RequestBuilder
-              onSendRequest={requestData => {
-                handleUpdateRequest(activeTab, requestData);
-                handleSendRequest(activeTab, requestData);
-              }}
-              loading={false}
-            />
+          <div className="grid gap-6">
+            <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
+              <RequestBuilder
+                onSendRequest={requestData => {
+                  handleUpdateRequest(activeTab, requestData);
+                  handleSendRequest(activeTab, requestData);
+                }}
+                loading={false}
+              />
+            </div>
+            <div className="mt-4">
+              <ResponseViewer
+                response={tabs.find(tab => tab.id === activeTab)?.response ? JSON.stringify(tabs.find(tab => tab.id === activeTab)?.response.data, null, 2) : ""}
+                statusCode={tabs.find(tab => tab.id === activeTab)?.response?.status || 0}
+                responseTime={tabs.find(tab => tab.id === activeTab)?.response?.timing || 0}
+                size={tabs.find(tab => tab.id === activeTab)?.response?.size || 0}
+                headers={tabs.find(tab => tab.id === activeTab)?.response?.headers || {}}
+                responseType={tabs.find(tab => tab.id === activeTab)?.response?.headers?.["content-type"]?.includes("application/json") ? "json" : "text"}
+              />
+            </div>
           </div>
-          <div className="mt-4">
-            <ResponseViewer
-              response={tabs.find(tab => tab.id === activeTab)?.response ? JSON.stringify(tabs.find(tab => tab.id === activeTab)?.response.data) : ""}
-              statusCode={tabs.find(tab => tab.id === activeTab)?.response?.status || 0}
-              responseTime={tabs.find(tab => tab.id === activeTab)?.response?.timing || 0}
-              size={tabs.find(tab => tab.id === activeTab)?.response?.size || 0}
-              headers={tabs.find(tab => tab.id === activeTab)?.response?.headers || {}}
-              responseType={tabs.find(tab => tab.id === activeTab)?.response?.headers?.["content-type"]?.includes("application/json") ? "json" : "text"}
-            />
-          </div>
-        </div>
+        </main>
       </div>
+      <WhatsNew open={showWhatsNew} onOpenChange={setShowWhatsNew} />
     </div>
   );
 }

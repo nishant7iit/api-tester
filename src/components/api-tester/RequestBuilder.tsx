@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Play, Plus, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const HTTP_METHODS = [
   { value: "GET", label: "GET", className: "method-get" },
@@ -118,6 +119,36 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
     }
   };
 
+  const generateCurlSnippet = () => {
+    let curl = `curl --request ${method} \\\n  --url ${buildUrlWithParams()}`;
+
+    for (const header of headers) {
+      if (header.key && header.value) {
+        curl += ` \\\n  --header '${header.key}: ${header.value}'`;
+      }
+    }
+
+    if (auth.type === 'bearer' && auth.token) {
+        curl += ` \\\n  --header 'Authorization: Bearer ${auth.token}'`;
+    }
+
+    if (body && method !== "GET") {
+      curl += ` \\\n  --data '${body}'`;
+    }
+
+    return curl;
+  };
+
+  const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard!",
+      description: "The cURL command has been copied to your clipboard.",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -147,6 +178,15 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
         </Button>
         <Button onClick={handleSave} variant="outline">
           Save
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            const curlCommand = generateCurlSnippet();
+            copyToClipboard(curlCommand);
+          }}
+        >
+          Copy as cURL
         </Button>
       </div>
       <Tabs defaultValue="params" className="w-full">
@@ -207,14 +247,24 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
           </div>
         </TabsContent>
         <TabsContent value="body" className="mt-4">
-          <Textarea
-            placeholder="Enter request body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="font-mono"
-            rows={10}
-            disabled={method === "GET"}
-          />
+          <div className="relative">
+            <Textarea
+              placeholder="Enter request body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              className="font-mono"
+              rows={10}
+              disabled={method === "GET"}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2"
+              onClick={() => setBody(JSON.stringify(JSON.parse(body), null, 2))}
+            >
+              Pretty
+            </Button>
+          </div>
         </TabsContent>
         <TabsContent value="auth" className="mt-4">
           <div className="flex items-center gap-4">
