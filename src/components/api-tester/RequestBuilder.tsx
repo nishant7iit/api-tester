@@ -99,16 +99,28 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
       auth
     };
     onSendRequest(requestData);
-    if (onSaveRequest) {
-        onSaveRequest(requestData);
-    }
-  }
+  };
 
-  const selectedMethod = HTTP_METHODS.find(m => m.value === method) || HTTP_METHODS[0];
+  const handleSave = () => {
+    const finalUrl = buildUrlWithParams();
+    const requestData = {
+      method,
+      url: finalUrl,
+      headers: headers.reduce((acc, h) => {
+        if (h.key && h.value) acc[h.key] = h.value;
+        return acc;
+      }, {} as Record<string, string>),
+      body: method !== "GET" ? body : undefined,
+      auth
+    };
+    if (onSaveRequest) {
+      onSaveRequest(requestData);
+    }
+  };
 
   return (
-    <div className="gradient-card rounded-lg p-6 space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <Select value={method} onValueChange={setMethod}>
           <SelectTrigger className="w-32">
             <SelectValue />
@@ -116,150 +128,115 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
           <SelectContent>
             {HTTP_METHODS.map((method) => (
               <SelectItem key={method.value} value={method.value}>
-                <Badge className={`${method.className} text-xs px-2 py-1`}>
+                <Badge className={`${method.className} text-xs`}>
                   {method.label}
                 </Badge>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-
-        <div className="flex-1 flex gap-2">
-          <Input
-            placeholder="Enter request URL..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="font-mono text-sm"
-          />
-          <Button 
-            onClick={handleSend} 
-            disabled={!url || loading}
-            className="gap-2 min-w-24"
-          >
-            <Play className="h-4 w-4" />
-            {loading ? "Sending..." : "Send"}
-          </Button>
-        </div>
+        <Input
+          placeholder="Enter request URL"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="flex-1 font-mono"
+        />
+        <Button onClick={handleSend} disabled={!url || loading} className="bg-blue-500 hover:bg-blue-600">
+          <Play className="w-4 h-4 mr-2" />
+          {loading ? "Sending..." : "Send"}
+        </Button>
+        <Button onClick={handleSave} variant="outline">
+          Save
+        </Button>
       </div>
-
-      <Tabs defaultValue="headers" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="params" className="w-full">
+        <TabsList>
+          <TabsTrigger value="params">Query Params</TabsTrigger>
           <TabsTrigger value="headers">Headers</TabsTrigger>
           <TabsTrigger value="body">Body</TabsTrigger>
           <TabsTrigger value="auth">Auth</TabsTrigger>
-          <TabsTrigger value="params">Params</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="headers" className="space-y-4">
+        <TabsContent value="params" className="mt-4">
           <div className="space-y-2">
-            {headers.map((header, index) => (
-              <div key={index} className="flex gap-2 items-center">
+            {params.map((param, index) => (
+              <div key={index} className="flex items-center gap-2">
                 <Input
-                  placeholder="Header name"
-                  value={header.key}
-                  onChange={(e) => updateHeader(index, "key", e.target.value)}
-                  className="font-mono text-sm"
+                  placeholder="Key"
+                  value={param.key}
+                  onChange={(e) => updateParam(index, "key", e.target.value)}
                 />
                 <Input
-                  placeholder="Header value"
-                  value={header.value}
-                  onChange={(e) => updateHeader(index, "value", e.target.value)}
-                  className="font-mono text-sm"
+                  placeholder="Value"
+                  value={param.value}
+                  onChange={(e) => updateParam(index, "value", e.target.value)}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeHeader(index)}
-                >
-                  <X className="h-4 w-4" />
+                <Button variant="ghost" size="icon" onClick={() => removeParam(index)}>
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             ))}
-            <Button variant="outline" onClick={addHeader} className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={addParam}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Param
+            </Button>
+          </div>
+        </TabsContent>
+        <TabsContent value="headers" className="mt-4">
+          <div className="space-y-2">
+            {headers.map((header, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  placeholder="Key"
+                  value={header.key}
+                  onChange={(e) => updateHeader(index, "key", e.target.value)}
+                />
+                <Input
+                  placeholder="Value"
+                  value={header.value}
+                  onChange={(e) => updateHeader(index, "value", e.target.value)}
+                />
+                <Button variant="ghost" size="icon" onClick={() => removeHeader(index)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={addHeader}>
+              <Plus className="w-4 h-4 mr-2" />
               Add Header
             </Button>
           </div>
         </TabsContent>
-
-        <TabsContent value="body" className="space-y-4">
-          <div className="space-y-2">
-            <Label>Request Body</Label>
-            <Textarea
-              placeholder="Enter request body (JSON, XML, etc.)"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="min-h-32 font-mono text-sm code-editor"
-              disabled={method === "GET"}
-            />
-            {method === "GET" && (
-              <p className="text-xs text-muted-foreground">
-                GET requests don't support request body
-              </p>
-            )}
-          </div>
+        <TabsContent value="body" className="mt-4">
+          <Textarea
+            placeholder="Enter request body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className="font-mono"
+            rows={10}
+            disabled={method === "GET"}
+          />
         </TabsContent>
-
-        <TabsContent value="auth" className="space-y-4">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Authentication Type</Label>
-              <Select value={auth.type} onValueChange={(value) => setAuth({ ...auth, type: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Auth</SelectItem>
-                  <SelectItem value="bearer">Bearer Token</SelectItem>
-                  <SelectItem value="basic">Basic Auth</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
+        <TabsContent value="auth" className="mt-4">
+          <div className="flex items-center gap-4">
+            <Select value={auth.type} onValueChange={(type) => setAuth({ ...auth, type })}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Auth Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Auth</SelectItem>
+                <SelectItem value="bearer">Bearer Token</SelectItem>
+                <SelectItem value="basic">Basic Auth</SelectItem>
+              </SelectContent>
+            </Select>
             {auth.type === "bearer" && (
-              <div className="space-y-2">
-                <Label>Bearer Token</Label>
-                <Input
-                  type="password"
-                  placeholder="Enter bearer token"
-                  value={auth.token}
-                  onChange={(e) => setAuth({ ...auth, token: e.target.value })}
-                  className="font-mono text-sm"
-                />
-              </div>
+              <Input
+                type="password"
+                placeholder="Bearer Token"
+                value={auth.token}
+                onChange={(e) => setAuth({ ...auth, token: e.target.value })}
+                className="flex-1"
+              />
             )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="params" className="space-y-4">
-          <div className="space-y-2">
-            {params.map((param, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <Input
-                  placeholder="Param key"
-                  value={param.key}
-                  onChange={(e) => updateParam(index, "key", e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Input
-                  placeholder="Param value"
-                  value={param.value}
-                  onChange={(e) => updateParam(index, "value", e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeParam(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button variant="outline" onClick={addParam} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Param
-            </Button>
           </div>
         </TabsContent>
       </Tabs>

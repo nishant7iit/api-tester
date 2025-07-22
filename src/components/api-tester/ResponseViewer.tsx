@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { CollectionsHistory } from "./CollectionsHistory";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface ResponseViewerProps {
   statusCode: number;
@@ -23,17 +24,14 @@ export function ResponseViewer({
   headers,
   responseType,
 }: ResponseViewerProps) {
-  const [activeTab, setActiveTab] = useState("formatted");
+  const { toast } = useToast();
 
-  const downloadResponse = () => {
-    console.log("Downloading response:", response);
-    const blob = new Blob([response], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "response.txt";
-    link.click();
-    URL.revokeObjectURL(url);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard!",
+      description: "The response has been copied to your clipboard.",
+    });
   };
 
   const renderFormattedResponse = () => {
@@ -41,72 +39,64 @@ export function ResponseViewer({
       try {
         const formattedJson = JSON.stringify(JSON.parse(response), null, 2);
         return (
-          <SyntaxHighlighter language="json" style={a11yDark} showLineNumbers>
+          <SyntaxHighlighter language="json" style={a11yDark} customStyle={{ margin: 0 }}>
             {formattedJson}
           </SyntaxHighlighter>
         );
       } catch {
-        return <pre>Invalid JSON</pre>;
+        return <pre className="p-4 bg-gray-800 text-white rounded-b-lg">Invalid JSON</pre>;
       }
     }
     return (
-      <SyntaxHighlighter language={responseType} style={a11yDark} showLineNumbers>
+      <SyntaxHighlighter language={responseType} style={a11yDark} customStyle={{ margin: 0 }}>
         {response}
       </SyntaxHighlighter>
     );
   };
 
   const renderHeaders = () => (
-    <Table>
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>Value</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Object.entries(headers).map(([key, value]) => (
-          <tr key={key}>
-            <td>{key}</td>
-            <td>{value}</td>
+    <div className="p-4">
+      <Table>
+        <thead>
+          <tr>
+            <th className="text-left">Key</th>
+            <th className="text-left">Value</th>
           </tr>
-        ))}
-      </tbody>
-    </Table>
+        </thead>
+        <tbody>
+          {Object.entries(headers).map(([key, value]) => (
+            <tr key={key} className="border-b">
+              <td className="py-2 font-mono">{key}</td>
+              <td className="py-2 font-mono">{value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
   );
 
   return (
-    <div>
-      <div>
-        <div className="gradient-card rounded-lg p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <p>Status Code: {statusCode}</p>
-              <p>Response Time: {responseTime} ms</p>
-              <p>Size: {size} bytes</p>
-            </div>
-            <Button onClick={downloadResponse}>Download Response</Button>
-          </div>
-          <Tabs defaultValue="formatted" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="formatted" onClick={() => setActiveTab("formatted")}>
-                Formatted JSON
-              </TabsTrigger>
-              <TabsTrigger value="raw" onClick={() => setActiveTab("raw")}>
-                Raw Response
-              </TabsTrigger>
-              <TabsTrigger value="headers" onClick={() => setActiveTab("headers")}>
-                Headers
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="formatted">{renderFormattedResponse()}</TabsContent>
-            <TabsContent value="raw">
-              <pre>{response}</pre>
-            </TabsContent>
-            <TabsContent value="headers">{renderHeaders()}</TabsContent>
-          </Tabs>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-4">
+          <Badge className={statusCode >= 200 && statusCode < 300 ? "bg-green-500" : "bg-red-500"}>
+            {statusCode}
+          </Badge>
+          <span>{responseTime} ms</span>
+          <span>{size} B</span>
         </div>
+        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(response)}>
+          Copy
+        </Button>
       </div>
+      <Tabs defaultValue="body" className="w-full">
+        <TabsList className="px-4">
+          <TabsTrigger value="body">Body</TabsTrigger>
+          <TabsTrigger value="headers">Headers</TabsTrigger>
+        </TabsList>
+        <TabsContent value="body">{renderFormattedResponse()}</TabsContent>
+        <TabsContent value="headers">{renderHeaders()}</TabsContent>
+      </Tabs>
     </div>
   );
 }
