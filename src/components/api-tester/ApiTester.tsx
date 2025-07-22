@@ -5,6 +5,7 @@ import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import MockServer from "./MockServer";
 import { CollectionsHistory } from "./CollectionsHistory";
 import { Documentation } from "./Documentation";
+import { CodeGenerator } from "./CodeGenerator";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { RequestBuilder } from "./RequestBuilder";
@@ -329,7 +330,7 @@ export function ApiTester() {
             <details className="group">
               <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Collections & History</summary>
               <div className="pt-2">
-                <CollectionsHistory />
+                <CollectionsHistory onSelectRequest={handleSelectRequest} />
               </div>
             </details>
             {/* Documentation Section */}
@@ -337,6 +338,13 @@ export function ApiTester() {
               <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Documentation</summary>
               <div className="pt-2">
                 <Documentation />
+              </div>
+            </details>
+            {/* Code Generation Section */}
+            <details className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Code</summary>
+              <div className="pt-2">
+                <CodeGenerator request={tabs.find(tab => tab.id === activeTab)?.request} />
               </div>
             </details>
             {/* Mock Server Section */}
