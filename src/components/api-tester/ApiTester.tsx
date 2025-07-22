@@ -217,14 +217,13 @@ export function ApiTester() {
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Sidebar onSelectRequest={handleSelectRequest} />
       <div className="flex flex-col flex-1">
-        <Header />
         <Header>
           <Button variant="ghost" size="icon" onClick={() => setShowWhatsNew(true)}>
             <Gift size={20} />
           </Button>
         </Header>
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -247,14 +246,15 @@ export function ApiTester() {
                 </button>
               </button>
             ))}
-            <button
-              className="p-2 text-white bg-blue-500 rounded-full hover:bg-blue-600 transition-transform transform hover:scale-110"
+            <Button
+              size="icon"
+              className="rounded-full"
               onClick={handleAddTab}
             >
               <Plus size={16} />
-            </button>
+            </Button>
           </div>
-          <div className="grid gap-6">
+          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
             <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
               <RequestBuilder
                 onSendRequest={requestData => {
@@ -264,7 +264,7 @@ export function ApiTester() {
                 loading={false}
               />
             </div>
-            <div className="mt-4">
+            <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
               <ResponseViewer
                 response={tabs.find(tab => tab.id === activeTab)?.response ? JSON.stringify(tabs.find(tab => tab.id === activeTab)?.response.data, null, 2) : ""}
                 statusCode={tabs.find(tab => tab.id === activeTab)?.response?.status || 0}

@@ -17,7 +17,7 @@ const HTTP_METHODS = [
   { value: "DELETE", label: "DELETE", className: "method-delete" },
 ];
 
-interface KeyValue {
+interface KeyValuePair {
   key: string;
   value: string;
 }
@@ -31,10 +31,10 @@ interface RequestBuilderProps {
 export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: RequestBuilderProps): JSX.Element {
   const [method, setMethod] = useState("GET");
   const [url, setUrl] = useState("https://jsonplaceholder.typicode.com/posts");
-  const [headers, setHeaders] = useState<KeyValue[]>([
+  const [headers, setHeaders] = useState<KeyValuePair[]>([
     { key: "Content-Type", value: "application/json" }
   ]);
-  const [params, setParams] = useState<KeyValue[]>([]);
+  const [params, setParams] = useState<KeyValuePair[]>([]);
   const [body, setBody] = useState("");
   const [auth, setAuth] = useState({ type: "none", token: "" });
 
@@ -42,7 +42,7 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
     setHeaders([...headers, { key: "", value: "" }]);
   };
 
-  const updateHeader = (index: number, field: keyof KeyValue, value: string) => {
+  const updateHeader = (index: number, field: keyof KeyValuePair, value: string) => {
     const newHeaders = [...headers];
     newHeaders[index][field] = value;
     setHeaders(newHeaders);
@@ -56,7 +56,7 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
     setParams([...params, { key: "", value: "" }]);
   };
 
-  const updateParam = (index: number, field: keyof KeyValue, value: string) => {
+  const updateParam = (index: number, field: keyof KeyValuePair, value: string) => {
     const newParams = [...params];
     newParams[index][field] = value;
     setParams(newParams);
@@ -80,7 +80,7 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
 
   useEffect(() => {
     const urlParams = new URLSearchParams(url.split("?")[1]);
-    const newParams: KeyValue[] = [];
+    const newParams: KeyValuePair[] = [];
     urlParams.forEach((value, key) => {
       newParams.push({ key, value });
     });
@@ -172,7 +172,7 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
           onChange={(e) => setUrl(e.target.value)}
           className="flex-1 font-mono"
         />
-        <Button onClick={handleSend} disabled={!url || loading} className="bg-blue-500 hover:bg-blue-600">
+        <Button onClick={handleSend} disabled={!url || loading}>
           <Play className="w-4 h-4 mr-2" />
           {loading ? "Sending..." : "Send"}
         </Button>

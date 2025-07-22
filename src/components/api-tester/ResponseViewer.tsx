@@ -5,6 +5,7 @@ import { Table } from "@/components/ui/table";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useToast } from "@/hooks/use-toast";
+import { FixedSizeList as List } from "react-window";
 import { Badge } from "@/components/ui/badge";
 
 interface ResponseViewerProps {
@@ -35,22 +36,50 @@ export function ResponseViewer({
   };
 
   const renderFormattedResponse = () => {
+    const lines = response.split('\n');
+    const Row = ({ index, style }) => (
+      <div style={style}>
+        <SyntaxHighlighter language={responseType} style={a11yDark} customStyle={{ margin: 0 }}>
+          {lines[index]}
+        </SyntaxHighlighter>
+      </div>
+    );
+
     if (responseType === "json") {
       try {
         const formattedJson = JSON.stringify(JSON.parse(response), null, 2);
+        const jsonLines = formattedJson.split('\n');
+        const JsonRow = ({ index, style }) => (
+          <div style={style}>
+            <SyntaxHighlighter language="json" style={a11yDark} customStyle={{ margin: 0 }}>
+              {jsonLines[index]}
+            </SyntaxHighlighter>
+          </div>
+        );
         return (
-          <SyntaxHighlighter language="json" style={a11yDark} customStyle={{ margin: 0 }}>
-            {formattedJson}
-          </SyntaxHighlighter>
+          <List
+            height={400}
+            itemCount={jsonLines.length}
+            itemSize={20}
+            width="100%"
+          >
+            {JsonRow}
+          </List>
         );
       } catch {
         return <pre className="p-4 bg-gray-800 text-white rounded-b-lg">Invalid JSON</pre>;
       }
     }
+
     return (
-      <SyntaxHighlighter language={responseType} style={a11yDark} customStyle={{ margin: 0 }}>
-        {response}
-      </SyntaxHighlighter>
+      <List
+        height={400}
+        itemCount={lines.length}
+        itemSize={20}
+        width="100%"
+      >
+        {Row}
+      </List>
     );
   };
 
@@ -85,7 +114,7 @@ export function ResponseViewer({
           <span>{responseTime} ms</span>
           <span>{size} B</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(response)}>
+        <Button variant="outline" size="sm" onClick={() => copyToClipboard(response)}>
           Copy
         </Button>
       </div>
@@ -95,17 +124,7 @@ export function ResponseViewer({
           <TabsTrigger value="headers">Headers</TabsTrigger>
         </TabsList>
         <TabsContent value="body">
-          <div className="relative">
-            {renderFormattedResponse()}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={() => copyToClipboard(response)}
-            >
-              Copy
-            </Button>
-          </div>
+          {renderFormattedResponse()}
         </TabsContent>
         <TabsContent value="headers">{renderHeaders()}</TabsContent>
       </Tabs>
