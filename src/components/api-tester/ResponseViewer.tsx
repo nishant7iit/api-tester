@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { CollectionsHistory } from "./CollectionsHistory";
 
 interface ResponseViewerProps {
@@ -37,12 +39,21 @@ export function ResponseViewer({
   const renderFormattedResponse = () => {
     if (responseType === "json") {
       try {
-        return <pre>{JSON.stringify(JSON.parse(response), null, 2)}</pre>;
+        const formattedJson = JSON.stringify(JSON.parse(response), null, 2);
+        return (
+          <SyntaxHighlighter language="json" style={a11yDark} showLineNumbers>
+            {formattedJson}
+          </SyntaxHighlighter>
+        );
       } catch {
         return <pre>Invalid JSON</pre>;
       }
     }
-    return <pre>{response}</pre>;
+    return (
+      <SyntaxHighlighter language={responseType} style={a11yDark} showLineNumbers>
+        {response}
+      </SyntaxHighlighter>
+    );
   };
 
   const renderHeaders = () => (
@@ -95,7 +106,6 @@ export function ResponseViewer({
             <TabsContent value="headers">{renderHeaders()}</TabsContent>
           </Tabs>
         </div>
-        <CollectionsHistory />
       </div>
     </div>
   );

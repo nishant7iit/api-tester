@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,7 @@ const HTTP_METHODS = [
   { value: "DELETE", label: "DELETE", className: "method-delete" },
 ];
 
-interface Header {
+interface KeyValue {
   key: string;
   value: string;
 }
@@ -30,9 +30,10 @@ interface RequestBuilderProps {
 export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: RequestBuilderProps): JSX.Element {
   const [method, setMethod] = useState("GET");
   const [url, setUrl] = useState("https://jsonplaceholder.typicode.com/posts");
-  const [headers, setHeaders] = useState<Header[]>([
+  const [headers, setHeaders] = useState<KeyValue[]>([
     { key: "Content-Type", value: "application/json" }
   ]);
+  const [params, setParams] = useState<KeyValue[]>([]);
   const [body, setBody] = useState("");
   const [auth, setAuth] = useState({ type: "none", token: "" });
 
@@ -40,7 +41,7 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
     setHeaders([...headers, { key: "", value: "" }]);
   };
 
-  const updateHeader = (index: number, field: keyof Header, value: string) => {
+  const updateHeader = (index: number, field: keyof KeyValue, value: string) => {
     const newHeaders = [...headers];
     newHeaders[index][field] = value;
     setHeaders(newHeaders);
@@ -50,10 +51,46 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
     setHeaders(headers.filter((_, i) => i !== index));
   };
 
+  const addParam = () => {
+    setParams([...params, { key: "", value: "" }]);
+  };
+
+  const updateParam = (index: number, field: keyof KeyValue, value: string) => {
+    const newParams = [...params];
+    newParams[index][field] = value;
+    setParams(newParams);
+  };
+
+  const removeParam = (index: number) => {
+    setParams(params.filter((_, i) => i !== index));
+  };
+
+  const buildUrlWithParams = () => {
+    const baseUrl = url.split("?")[0];
+    const searchParams = new URLSearchParams();
+    params.forEach(param => {
+      if (param.key) {
+        searchParams.append(param.key, param.value);
+      }
+    });
+    const paramString = searchParams.toString();
+    return paramString ? `${baseUrl}?${paramString}` : baseUrl;
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(url.split("?")[1]);
+    const newParams: KeyValue[] = [];
+    urlParams.forEach((value, key) => {
+      newParams.push({ key, value });
+    });
+    setParams(newParams);
+  }, [url]);
+
   const handleSend = () => {
+    const finalUrl = buildUrlWithParams();
     const requestData = {
       method,
-      url,
+      url: finalUrl,
       headers: headers.reduce((acc, h) => {
         if (h.key && h.value) acc[h.key] = h.value;
         return acc;
@@ -62,12 +99,12 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
       auth
     };
     onSendRequest(requestData);
-    if (onSaveRequest) { // Ensure onSaveRequest is properly passed and used
-        onSaveRequest(requestData); // Ensure onSaveRequest is properly checked before use
+    if (onSaveRequest) {
+        onSaveRequest(requestData);
     }
   }
- 
-  const selectedMethod = HTTP_METHODS.find(m => m.value === method) || HTTP_METHODS[0]; // Ensure method is always valid
+
+  const selectedMethod = HTTP_METHODS.find(m => m.value === method) || HTTP_METHODS[0];
 
   return (
     <div className="gradient-card rounded-lg p-6 space-y-6">
@@ -195,10 +232,34 @@ export function RequestBuilder({ onSendRequest, onSaveRequest, loading }: Reques
         </TabsContent>
 
         <TabsContent value="params" className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Query parameters can be added directly to the URL above.
-            <br />
-            Example: ?param1=value1&param2=value2
+          <div className="space-y-2">
+            {params.map((param, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <Input
+                  placeholder="Param key"
+                  value={param.key}
+                  onChange={(e) => updateParam(index, "key", e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <Input
+                  placeholder="Param value"
+                  value={param.value}
+                  onChange={(e) => updateParam(index, "value", e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeParam(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button variant="outline" onClick={addParam} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Param
+            </Button>
           </div>
         </TabsContent>
       </Tabs>
