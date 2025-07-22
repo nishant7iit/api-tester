@@ -10,10 +10,8 @@ import { Sidebar } from "./Sidebar";
 import { RequestBuilder } from "./RequestBuilder";
 import { ResponseViewer } from "./ResponseViewer";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, FileText, Gift } from "lucide-react";
+import { Plus, X, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { WhatsNew } from "./WhatsNew";
-import { Button } from "@/components/ui/button";
 
 interface Request {
   id: string;
@@ -42,16 +40,7 @@ export function ApiTester() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return localStorage.getItem("apiTesterOnboarding") !== "dismissed";
   });
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const hasSeenWhatsNew = localStorage.getItem("whatsNewLastSeen");
-    if (!hasSeenWhatsNew) {
-      setShowWhatsNew(true);
-      localStorage.setItem("whatsNewLastSeen", new Date().toISOString());
-    }
-  }, []);
 
   // Only define handleAddTab once, and memoize for useEffect
   const handleAddTab = () => {
@@ -155,10 +144,6 @@ export function ApiTester() {
 
       handleUpdateResponse(tabId, responseData);
 
-      const newRequest = { ...requestData, id: Date.now().toString(), timestamp: new Date() };
-      const history = JSON.parse(localStorage.getItem("requestHistory") || "[]");
-      localStorage.setItem("requestHistory", JSON.stringify([newRequest, ...history]));
-
       toast({
         title: "Request completed",
         description: `${response.status} ${response.statusText} • ${timing}ms`,
@@ -214,70 +199,205 @@ export function ApiTester() {
   // const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <Sidebar onSelectRequest={handleSelectRequest} />
-      <div className="flex flex-col flex-1">
-        <Header>
-          <Button variant="ghost" size="icon" onClick={() => setShowWhatsNew(true)}>
-            <Gift size={20} />
-          </Button>
-        </Header>
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            {tabs.map(tab => (
+    <TooltipProvider>
+      <div className="api-tester-container h-screen flex flex-col bg-background">
+        <Header />
+        {/* Collapsible Sidebar */}
+        <div className="fixed top-4 left-4 z-50">
+          <Tooltip open={showOnboarding} delayDuration={0}>
+            <TooltipTrigger asChild>
               <button
-                key={tab.id}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-t-lg focus:outline-none transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
-                }`}
-                onClick={() => setActiveTab(tab.id)}
+                className="p-2 rounded-full bg-primary text-white shadow-lg hover:bg-primary/80 transition"
+                onClick={() => setSidebarVisible((open) => !open)}
               >
-                <span>{tab.name}</span>
+                <span className="sr-only">Toggle Sidebar</span>
+                <Menu size={20} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <div>
+                <b>Sidebar</b>: Access your collections and history here.<br />
                 <button
-                  className="p-1 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500"
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleCloseTab(tab.id);
+                  className="mt-2 px-2 py-1 bg-primary text-white rounded"
+                  onClick={() => {
+                    setShowOnboarding(false);
+                    localStorage.setItem("apiTesterOnboarding", "dismissed");
                   }}
                 >
-                  <X size={14} />
+                  Got it
                 </button>
-              </button>
-            ))}
-            <Button
-              size="icon"
-              className="rounded-full"
-              onClick={handleAddTab}
-            >
-              <Plus size={16} />
-            </Button>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        {sidebarVisible && (
+          <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setSidebarVisible(false)}>
+            <div className="absolute left-0 top-0 h-full w-64 bg-card shadow-xl p-4" onClick={e => e.stopPropagation()}>
+              <Sidebar onSelectRequest={handleSelectRequest} />
+            </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-            <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
-              <RequestBuilder
-                onSendRequest={requestData => {
-                  handleUpdateRequest(activeTab, requestData);
-                  handleSendRequest(activeTab, requestData);
+        )}
+        {/* Main Workspace */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-auto">
+          <div className="w-full max-w-3xl space-y-6">
+            {/* Minimal Tabs */}
+            <div className="flex items-center gap-2 mb-2">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                    activeTab === tab.id
+                      ? "bg-primary text-white shadow"
+                      : "bg-muted text-foreground hover:bg-primary/10"
+                  }`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.name}
+                  <span
+                    className="ml-2 text-xs text-muted-foreground hover:text-destructive cursor-pointer"
+                    onClick={e => { e.stopPropagation(); handleCloseTab(tab.id); }}
+                  >
+                    ×
+                  </span>
+                </button>
+              ))}
+              <Tooltip open={showOnboarding} delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <button
+                    className="ml-2 p-1 rounded-full bg-primary text-white hover:bg-primary/80 transition"
+                    onClick={handleAddTab}
+                    aria-label="New Request Tab"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <div>
+                    <b>New Tab</b>: Create a new request tab.<br />
+                    <button
+                      className="mt-2 px-2 py-1 bg-primary text-white rounded"
+                      onClick={() => {
+                        setShowOnboarding(false);
+                        localStorage.setItem("apiTesterOnboarding", "dismissed");
+                      }}
+                    >
+                      Got it
+                    </button>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          {/* Collapsible Sections */}
+          <div className="rounded-xl shadow bg-card/90 border border-border p-4 space-y-4">
+            {/* Request Section */}
+            <details open className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Request</summary>
+              <div className="pt-2">
+                <RequestBuilder
+                  onSendRequest={(requestData) => {
+                    handleUpdateRequest(activeTab, requestData);
+                    handleSendRequest(activeTab, requestData);
+                  }}
+                  loading={false}
+                />
+              </div>
+            </details>
+            {/* Response Section */}
+            <details open className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition flex items-center gap-4">
+                Response
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {(() => {
+                    const resp = tabs.find(tab => tab.id === activeTab)?.response;
+                    if (!resp) return "No response";
+                    return `${resp.status} ${resp.statusText} • ${resp.timing}ms • ${resp.size}B`;
+                  })()}
+                </span>
+              </summary>
+              <div className="pt-2">
+                <ResponseViewer
+                  response={tabs.find(tab => tab.id === activeTab)?.response ? JSON.stringify(tabs.find(tab => tab.id === activeTab)?.response.data) : ""}
+                  statusCode={tabs.find(tab => tab.id === activeTab)?.response?.status || 0}
+                  responseTime={tabs.find(tab => tab.id === activeTab)?.response?.timing || 0}
+                  size={tabs.find(tab => tab.id === activeTab)?.response?.size || 0}
+                  headers={tabs.find(tab => tab.id === activeTab)?.response?.headers || {}}
+                  responseType={tabs.find(tab => tab.id === activeTab)?.response?.headers?.["content-type"]?.includes("application/json") ? "json" : "text"}
+                />
+              </div>
+            </details>
+            {/* Collections/History Section */}
+            <details className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Collections & History</summary>
+              <div className="pt-2">
+                <CollectionsHistory />
+              </div>
+            </details>
+            {/* Documentation Section */}
+            <details className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Documentation</summary>
+              <div className="pt-2">
+                <Documentation />
+              </div>
+            </details>
+            {/* Mock Server Section */}
+            <details className="group">
+              <summary className="font-semibold text-lg cursor-pointer select-none py-2 px-1 rounded group-open:bg-primary/10 transition">Mock Server</summary>
+              <div className="pt-2">
+                <MockServer />
+              </div>
+            </details>
+          </div>
+        </div>
+        {/* Floating Action Buttons */}
+        <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+          <Tooltip open={showOnboarding} delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                className="p-4 rounded-full bg-primary text-white shadow-lg hover:bg-primary/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  !("method" in (tabs.find(tab => tab.id === activeTab)?.request || {})) ||
+                  !("url" in (tabs.find(tab => tab.id === activeTab)?.request || ""))
+                }
+                onClick={() => {
+                  const currentTab = tabs.find(tab => tab.id === activeTab);
+                  if (currentTab) {
+                    handleSendRequest(activeTab, currentTab.request);
+                  }
                 }}
-                loading={false}
-              />
-            </div>
-            <div className="p-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
-              <ResponseViewer
-                response={tabs.find(tab => tab.id === activeTab)?.response ? JSON.stringify(tabs.find(tab => tab.id === activeTab)?.response.data, null, 2) : ""}
-                statusCode={tabs.find(tab => tab.id === activeTab)?.response?.status || 0}
-                responseTime={tabs.find(tab => tab.id === activeTab)?.response?.timing || 0}
-                size={tabs.find(tab => tab.id === activeTab)?.response?.size || 0}
-                headers={tabs.find(tab => tab.id === activeTab)?.response?.headers || {}}
-                responseType={tabs.find(tab => tab.id === activeTab)?.response?.headers?.["content-type"]?.includes("application/json") ? "json" : "text"}
-              />
-            </div>
-          </div>
-        </main>
+              >
+                Send
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <div>
+                <b>Send</b>: Click to send your API request.<br />
+                <button
+                  className="mt-2 px-2 py-1 bg-primary text-white rounded"
+                  onClick={() => {
+                    setShowOnboarding(false);
+                    localStorage.setItem("apiTesterOnboarding", "dismissed");
+                  }}
+                >
+                  Got it
+                </button>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+          <button
+            className="p-4 rounded-full bg-muted text-foreground shadow-lg hover:bg-primary/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={
+              !tabs.find(tab => tab.id === activeTab)?.request ||
+              Object.keys(tabs.find(tab => tab.id === activeTab)?.request || {}).length === 0
+            }
+            onClick={() => {
+              toast({ title: "Request saved!", description: "Your request has been saved." });
+            }}
+          >
+            Save
+          </button>
+        </div>
       </div>
-      <WhatsNew open={showWhatsNew} onOpenChange={setShowWhatsNew} />
     </div>
+    </TooltipProvider>
   );
 }

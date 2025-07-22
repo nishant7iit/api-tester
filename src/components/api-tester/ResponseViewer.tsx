@@ -5,7 +5,6 @@ import { Table } from "@/components/ui/table";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useToast } from "@/hooks/use-toast";
-import { FixedSizeList as List } from "react-window";
 import { Badge } from "@/components/ui/badge";
 
 interface ResponseViewerProps {
@@ -25,6 +24,7 @@ export function ResponseViewer({
   headers,
   responseType,
 }: ResponseViewerProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
 
   const copyToClipboard = (text: string) => {
@@ -36,50 +36,36 @@ export function ResponseViewer({
   };
 
   const renderFormattedResponse = () => {
-    const lines = response.split('\n');
-    const Row = ({ index, style }) => (
-      <div style={style}>
-        <SyntaxHighlighter language={responseType} style={a11yDark} customStyle={{ margin: 0 }}>
-          {lines[index]}
-        </SyntaxHighlighter>
-      </div>
-    );
+    const truncatedResponse = response.substring(0, 1000);
+    const shouldTruncate = response.length > 1000;
 
     if (responseType === "json") {
       try {
         const formattedJson = JSON.stringify(JSON.parse(response), null, 2);
-        const jsonLines = formattedJson.split('\n');
-        const JsonRow = ({ index, style }) => (
-          <div style={style}>
-            <SyntaxHighlighter language="json" style={a11yDark} customStyle={{ margin: 0 }}>
-              {jsonLines[index]}
-            </SyntaxHighlighter>
-          </div>
-        );
+        const truncatedJson = isExpanded ? formattedJson : formattedJson.substring(0, 1000);
         return (
-          <List
-            height={400}
-            itemCount={jsonLines.length}
-            itemSize={20}
-            width="100%"
-          >
-            {JsonRow}
-          </List>
+          <div>
+            <SyntaxHighlighter language="json" style={a11yDark} customStyle={{ margin: 0 }}>
+              {truncatedJson}
+            </SyntaxHighlighter>
+            {shouldTruncate && !isExpanded && (
+              <Button onClick={() => setIsExpanded(true)} variant="link">Show more</Button>
+            )}
+          </div>
         );
       } catch {
         return <pre className="p-4 bg-gray-800 text-white rounded-b-lg">Invalid JSON</pre>;
       }
     }
-
     return (
-      <List
-        height={400}
-        itemCount={lines.length}
-        itemSize={20}
-        width="100%"
-      >
-        {Row}
-      </List>
+      <div>
+        <SyntaxHighlighter language={responseType} style={a11yDark} customStyle={{ margin: 0 }}>
+          {isExpanded ? response : truncatedResponse}
+        </SyntaxHighlighter>
+        {shouldTruncate && !isExpanded && (
+          <Button onClick={() => setIsExpanded(true)} variant="link">Show more</Button>
+        )}
+      </div>
     );
   };
 
